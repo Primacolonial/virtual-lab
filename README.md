@@ -1,24 +1,24 @@
 ## Introduction
 
 
-<b>Discipline | <b>Fill your discipline name here
+<b>Discipline | <b>Information Technology
 :--|:--|
-<b> Lab | <b> Fill your lab name here
-<b> Experiment|     <b> Fill your experiment name and number here
+<b> Lab | <b> VIRTUAL LAB
+<b> Experiment|     <b> PROJECT 30: Create a visual guide in VR that explain how the bi-prism create the interference pattern
 
 ### About the Experiment 
 
 Fill a brief description of this experiment here
 
-<b>Name of Developer | <b> Fill the name of experiment owner here 
+<b>Name of Developer | <b> Dr.Ashutosh Tiwari 
 :--|:--|
-<b> Institute | <b>  
-<b> Email id|     <b>  
-<b> Department |  
+<b> Institute | <b> Rajkiya Engineering College Banda   
+<b> Email id|     <b> kkumar236232@gmail.com 
+<b> Department |  Information Technology
 
 ### Contributors List
 
 SrNo | Name | Faculty or Student | Department| Institute | Email id
 :--|:--|:--|:--|:--|:--|
-1 | . | . | . | . | .
+1 | KISHAN KUMAR | Dr.Ashutosh Tiwari | INFORMATION TECHNOLOGY | Rajkiya Engineering College Banda | kkumar23623@gmail.com
 2 | . | . | . | . | .

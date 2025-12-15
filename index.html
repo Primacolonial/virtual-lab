@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <title>Physics Lab - Extra Tall Table Legs</title>
+    <style>
+        body { margin: 0; font-family: Arial; background: #000; overflow: hidden; }
+        #info { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+        #controls { position: absolute; bottom: 10px; left: 10px; color: white; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); width: 280px; }
+        input[type="number"] { width: 70px; padding: 5px; margin: 2px; background: #333; color: #fff; border: 1px solid #555; border-radius: 4px; }
+        input[type="range"] { width: 120px; margin: 2px; accent-color: #4CAF50; }
+        input[type="number"]:focus { outline: none; border-color: #4CAF50; box-shadow: 0 0 5px rgba(76,175,80,0.5); }
+        button { padding: 8px 12px; background: #cc3333; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 3px; font-weight: bold; }
+        button:hover { background: #aa2222; transform: scale(1.05); }
+        .param-row { display: flex; align-items: center; margin: 8px 0; }
+        .param-label { min-width: 60px; font-size: 13px; font-weight: bold; }
+        .value-display { background: rgba(0,255,127,0.2); padding: 4px 8px; border-radius: 4px; margin-left: 5px; font-weight: bold; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h3>🏛️ Physics Lab - Extra Tall Table</h3>
+        <p><strong>✅ 2.8m Legs | Perfect Standing Height</strong></p>
+        <p><em>Slit → 2.5m → Bi-Prism → 4m → Screen</em></p>
+        <div id="fringeInfo">Fringe width: calculating...</div>
+    </div>
+    
+    <div id="controls">
+        <button id="laserToggle">🔴 Dark Red Laser ON</button><br>
+        
+        <div class="param-row">
+            <span class="param-label">λ (nm):</span>
+            <input type="range" id="wavelengthSlider" min="400" max="700" value="632" step="1">
+            <input type="number" id="wavelengthInput" value="632" min="400" max="700" step="1">
+            <span id="wlabel" class="value-display">632nm 🔴</span>
+        </div>
+        
+        <div class="param-row">
+            <span class="param-label">d (mm):</span>
+            <input type="range" id="separationSlider" min="0.05" max="0.5" value="0.1" step="0.01">
+            <input type="number" id="separationInput" value="0.1" min="0.05" max="0.5" step="0.01">
+            <span id="slabel" class="value-display">0.10mm</span>
+        </div>
+        
+        <div class="param-row">
+            <span class="param-label">D (m):</span>
+            <input type="range" id="distanceSlider" min="0.5" max="2" value="1" step="0.1">
+            <input type="number" id="distanceInput" value="1.0" min="0.5" max="2" step="0.1">
+            <span id="dlabel" class="value-display">1.00m</span>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <script>
+        // Physics Lab Scene
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.Fog(0xdddddd, 25, 70);
+        
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.1;
+        document.body.appendChild(renderer.domElement);
+
+        // Lab Lighting (same)
+        const ambientLight = new THREE.AmbientLight(0x999999, 0.65); scene.add(ambientLight);
+        for(let i = 0; i < 6; i++) {
+            const light = new THREE.PointLight(0xffffff, 1.3, 25);
+            light.position.set(i*4-10, 9, -2); light.castShadow = true; scene.add(light);
+        }
+        const windowLight1 = new THREE.DirectionalLight(0xddeeff, 1.0);
+        windowLight1.position.set(0, 6, -15); scene.add(windowLight1);
+
+        // Floor & Walls (same)
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshLambertMaterial({ color: 0x666666 }));
+        floor.rotation.x = -Math.PI/2; floor.position.y = -2; floor.receiveShadow = true; scene.add(floor);
+        
+        const backWall = new THREE.Mesh(new THREE.PlaneGeometry(30, 12), new THREE.MeshLambertMaterial({ color: 0xe8e8e8 }));
+        backWall.position.set(0, 3, -15); scene.add(backWall);
+        
+        const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(30, 12), new THREE.MeshLambertMaterial({ color: 0xe6e6e6 }));
+        leftWall.rotation.y = Math.PI/2; leftWall.position.set(-20, 3, 0); scene.add(leftWall);
+        
+        const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(30, 12), new THREE.MeshLambertMaterial({ color: 0xe6e6e6 }));
+        rightWall.rotation.y = -Math.PI/2; rightWall.position.set(20, 3, 0); scene.add(rightWall);
+        
+        const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshLambertMaterial({ color: 0xc8c8c8 }));
+        ceiling.rotation.x = Math.PI/2; ceiling.position.y = 8; scene.add(ceiling);
+        
+        for(let i = 0; i < 4; i++) {
+            const windowGlass = new THREE.Mesh(new THREE.PlaneGeometry(3.5, 2.5), new THREE.MeshPhongMaterial({ color: 0x88ddff, transparent: true, opacity: 0.15, side: THREE.DoubleSide }));
+            windowGlass.position.set(i*3.5-5.25, 6.5, -17.5); scene.add(windowGlass);
+        }
+
+        // EXTRA TALL TABLE 🪑
+        const tableTopGeometry = new THREE.BoxGeometry(12, 0.25, 2.5);
+        const tableMaterial = new THREE.MeshPhongMaterial({ 
+            color: 0x8B4513, 
+            shininess: 30,
+            specular: 0x222222
+        });
+        const tableTop = new THREE.Mesh(tableTopGeometry, tableMaterial);
+        tableTop.position.set(0, -0.4, 0);  // Perfect standing height (1.1m tabletop)
+        tableTop.receiveShadow = true;
+        tableTop.castShadow = true;
+        scene.add(tableTop);
+
+        // EXTRA STRONG TALL LEGS (18cm × 2.8m) 🦵
+        const legMaterial = new THREE.MeshPhongMaterial({ 
+            color: 0x6B3E2E, 
+            shininess: 20
+        });
+        
+        // Front Left Leg
+        const leg1 = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 2.8, 16), legMaterial);
+        leg1.position.set(-5.2, -1.7, 1.0);
+        leg1.castShadow = true;
+        scene.add(leg1);
+        
+        // Front Right Leg  
+        const leg2 = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 2.8, 16), legMaterial);
+        leg2.position.set(5.2, -1.7, 1.0);
+        leg2.castShadow = true;
+        scene.add(leg2);
+        
+        // Back Left Leg
+        const leg3 = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 2.8, 16), legMaterial);
+        leg3.position.set(-5.2, -1.7, -1.0);
+        leg3.castShadow = true;
+        scene.add(leg3);
+        
+        // Back Right Leg
+        const leg4 = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 2.8, 16), legMaterial);
+        leg4.position.set(5.2, -1.7, -1.0);
+        leg4.castShadow = true;
+        scene.add(leg4);
+
+        // Dark Red Laser (perfect standing height)
+        const laserGroup = new THREE.Group();
+        const laserHousing = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.4, 12), new THREE.MeshPhongMaterial({ color: 0x222222 }));
+        laserHousing.position.set(0, 0.15, 0);
+        const laserEmitter = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.1, 8), new THREE.MeshPhongMaterial({ color: 0xaa0000, emissive: 0x440000, emissiveIntensity: 0.8 }));
+        laserEmitter.position.set(0.25, 0, 0);
+        laserGroup.add(laserHousing, laserEmitter);
+        laserGroup.position.set(-3.5, -0.25, 0); laserGroup.visible = true; scene.add(laserGroup);
+
+        const slit = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.3, 8), new THREE.MeshPhongMaterial({ color: 0xffff00, emissive: 0x444400 }));
+        slit.position.set(-3.5, -0.25, 0); slit.castShadow = true; slit.visible = false; scene.add(slit);
+
+        // Bi-Prism (perfect standing height)
+        const prismGeometry = new THREE.BoxGeometry(0.35, 0.25, 0.08);
+        const prismMaterial = new THREE.MeshPhongMaterial({ color: 0x44ff88, transparent: true, opacity: 0.9, shininess: 100, side: THREE.DoubleSide });
+        const prism1 = new THREE.Mesh(prismGeometry, prismMaterial); prism1.position.set(0, 0.1, 0.04); prism1.rotation.z = Math.PI / 18;
+        const prism2 = new THREE.Mesh(prismGeometry, prismMaterial); prism2.position.set(0, 0.1, -0.04); prism2.rotation.z = -Math.PI / 18;
+        const biprism = new THREE.Group(); biprism.add(prism1, prism2); biprism.position.set(-1.0, -0.25, 0); scene.add(biprism);
+
+        // Screen (perfect standing height)
+        const screenFrame = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.8, 1.6), new THREE.MeshLambertMaterial({ color: 0x333333 }));
+        const screenGlass = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.7), new THREE.MeshPhongMaterial({ color: 0x222222 }));
+        screenGlass.position.z = 0.04;
+        const screenGroup = new THREE.Group(); screenGroup.add(screenFrame, screenGlass);
+        screenGroup.position.set(3.0, -0.25, 0); screenGroup.receiveShadow = true; scene.add(screenGroup);
+
+        // Dark Red Laser Beam (perfect standing height)
+        const laserBeamGeometry = new THREE.CylinderGeometry(0.003, 0.003, 6.5, 10);
+        const laserBeamMaterial = new THREE.MeshBasicMaterial({ color: 0xaa2222, transparent: true, opacity: 0.85 });
+        const laserBeam = new THREE.Mesh(laserBeamGeometry, laserBeamMaterial);
+        laserBeam.rotation.z = Math.PI / 2; laserBeam.position.set(0, -0.25, 0); laserBeam.visible = true; scene.add(laserBeam);
+
+        // Interference fringes
+        const canvasTexture = document.createElement('canvas'); canvasTexture.width = 1024; canvasTexture.height = 512;
+        const ctx2d = canvasTexture.getContext('2d'); const fringeTexture = new THREE.CanvasTexture(canvasTexture);
+        const fringes = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 0.65), new THREE.MeshBasicMaterial({ map: fringeTexture }));
+        fringes.position.set(3.0, -0.25, 0.09); scene.add(fringes);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement); controls.enableDamping = true;
+        camera.position.set(0, 1.2, 7);  // Eye level camera
+
+        // Parameters & controls (same)
+        let wavelength = 632e-9, separation = 0.1e-3, distance = 1, laserOn = true;
+
+        function syncValues(param) {
+            const slider = document.getElementById(param + 'Slider');
+            const input = document.getElementById(param + 'Input');
+            
+            slider.oninput = () => {
+                input.value = parseFloat(slider.value).toFixed(param === 'wavelength' ? 0 : param === 'separation' ? 2 : 1);
+                updateExperiment();
+            };
+            
+            input.oninput = () => {
+                const val = parseFloat(input.value);
+                if (!isNaN(val) && val >= parseFloat(slider.min) && val <= parseFloat(slider.max)) {
+                    slider.value = val;
+                    updateExperiment();
+                }
+            };
+        }
+
+        document.getElementById('laserToggle').onclick = function() {
+            laserOn = !laserOn;
+            laserGroup.visible = laserOn; slit.visible = !laserOn; laserBeam.visible = laserOn;
+            this.textContent = laserOn ? '🔴 Dark Red Laser ON' : '💡 Sodium ON';
+            updateExperiment();
+        };
+
+        function updateExperiment() {
+            wavelength = parseFloat(document.getElementById('wavelengthInput').value) * 1e-9;
+            separation = parseFloat(document.getElementById('separationInput').value) * 1e-3;
+            distance = parseFloat(document.getElementById('distanceInput').value);
+            
+            document.getElementById('wlabel').textContent = document.getElementById('wavelengthInput').value + (laserOn ? 'nm 🔴' : 'nm 💡');
+            document.getElementById('slabel').textContent = document.getElementById('separationInput').value + 'mm';
+            document.getElementById('dlabel').textContent = document.getElementById('distanceInput').value + 'm';
+            updateFringes();
+        }
+
+        function updateFringes() {
+            const beta = (wavelength * distance / separation) * 1000;
+            document.getElementById('fringeInfo').textContent = `Fringe width β = ${beta.toFixed(3)} mm`;
+            
+            ctx2d.fillStyle = '#000111'; ctx2d.fillRect(0, 0, 1024, 512);
+            for(let x = 0; x < 1024; x++) {
+                const pos = (x - 512) / 1024 * 0.025;
+                const r1 = Math.sqrt(distance*distance + (pos + separation/2)**2);
+                const r2 = Math.sqrt(distance*distance + (pos - separation/2)**2);
+                const delta = (2 * Math.PI / wavelength) * (r2 - r1);
+                const intensity = 255 * Math.pow(Math.cos(delta / 2), 2);
+                const r = laserOn ? intensity * 0.7 : intensity * 0.3;
+                const g = laserOn ? intensity * 0.2 : intensity;
+                ctx2d.fillStyle = `rgb(${r}, ${g}, 40)`; 
+                ctx2d.fillRect(x, 256 - intensity/3, 1, intensity * 0.8);
+            }
+            fringeTexture.needsUpdate = true;
+        }
+
+        syncValues('wavelength'); syncValues('separation'); syncValues('distance');
+        updateExperiment();
+
+        function animate() { 
+            requestAnimationFrame(animate); 
+            controls.update(); 
+            renderer.render(scene, camera); 
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix(); 
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
